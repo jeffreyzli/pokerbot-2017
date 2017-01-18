@@ -35,7 +35,7 @@ class Player:
             word = data.split()[0]
             if word == "GETACTION":
                 # Currently CHECK on every move. You'll want to change this.
-                s.send("CALL\n")
+                s.send("CHECK\n")
             elif word == "REQUESTKEYVALUES":
                 # At the end, the engine will allow your bot save key/value pairs.
                 # Send FINISH to indicate you're done.
