@@ -1,6 +1,7 @@
 import argparse
 import socket
 import sys
+from HandRankings import hand_win_odds
 
 """
 Simple example pokerbot, written in python.
@@ -24,6 +25,14 @@ class Player:
 
             # Here is where you should implement code to parse the packets from
             # the engine and act on it. We are just printing it instead.
+
+            data_list = data.split()
+            word = data_list[0]
+            if word == "NEWHAND":
+                hand = [data_list[3], data_list[4]]
+                win_odds = hand_win_odds(hand)
+                print hand
+                print win_odds
             print data
 
             # When appropriate, reply to the engine with a legal action.
@@ -32,7 +41,6 @@ class Player:
             # illegal action.
             # When sending responses, terminate each response with a newline
             # character (\n) or your bot will hang!
-            word = data.split()[0]
             if word == "GETACTION":
                 # Currently CHECK on every move. You'll want to change this.
                 s.send("CALL\n")
