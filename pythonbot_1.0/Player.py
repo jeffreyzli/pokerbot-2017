@@ -2,6 +2,7 @@ import argparse
 import socket
 import sys
 from HandRankings import hand_win_odds
+import PreflopLogic as pl
 
 """
 Simple example pokerbot, written in python.
@@ -31,9 +32,7 @@ class Player:
             if word == "NEWHAND":
                 hand = [data_list[3], data_list[4]]
                 win_odds = hand_win_odds(hand)
-                print hand
-                print win_odds
-            print data
+                button = data_list[2]
 
             # When appropriate, reply to the engine with a legal action.
             # The engine will ignore all spurious responses.
@@ -43,7 +42,8 @@ class Player:
             # character (\n) or your bot will hang!
             if word == "GETACTION":
                 # Currently CHECK on every move. You'll want to change this.
-                s.send("CALL\n")
+                action = pl.getaction(data_list, hand, button)
+                s.send(action + "\n")
             elif word == "REQUESTKEYVALUES":
                 # At the end, the engine will allow your bot save key/value pairs.
                 # Send FINISH to indicate you're done.
