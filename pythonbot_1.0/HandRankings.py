@@ -65,3 +65,48 @@ def hand_win_odds(cards):
     if hand_rankings.get(hand) is None:
         hand = hand[1] + hand[0] + hand[2]
     return hand_rankings[hand]
+
+
+keys = hand_rankings.keys()
+count50 = 0
+count53 = 0
+count55 = 0
+count57 = 0
+count60 = 0
+count70 = 0
+base = 0
+
+vals = {}
+
+for i in keys:
+    if i[0] != i[1]:
+        if i[2] == 'o':
+            factor = 12
+        elif i[2] == 's':
+            factor = 4
+    else:
+        factor = 6
+
+    if hand_rankings[i] >= 0.50:
+        count50 += factor
+    if hand_rankings[i] >= 0.53:
+        count53 += factor
+    if hand_rankings[i] >= 0.55:
+        count55 += factor
+    if hand_rankings[i] >= 0.57:
+        count57 += factor
+    if hand_rankings[i] >= 0.60:
+        count60 += factor
+    if hand_rankings[i] >= 0.70:
+        count70 += factor
+
+vals['.5'] = count50/1326
+vals['.53'] = count53/1326
+vals['.55'] = count55/1326
+vals['.57'] = count57/1326
+vals['.60'] = count60/1326
+vals['.70'] = count70/1326
+#print(vals)
+
+#print('base:', base/1326)
+#print(hand_rankings['22o'])
