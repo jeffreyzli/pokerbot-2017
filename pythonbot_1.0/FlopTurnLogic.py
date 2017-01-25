@@ -34,12 +34,18 @@ def getaction(streetDict, potsize, numBoardCards, boardCards, numLastActions, la
                 colIndex2 = firstSlice.index(":")
                 minRaise = int(firstSlice[:colIndex2]) #int(move[colIndex + 1:colIndex2])
                 maxRaise = int(firstSlice[colIndex2 + 1:]) #int(move[colIndex2 + 1:])
-##TODO - SAME SHIT. MAKE THESE HAVE A BET LIMIT (MAYBE OF 1 INSTEAD OF 3)
 
-        if betBool and streetDict['3'] < 2:                                         #TODO - Ideally, should prevent more than 3-bet
+        if betBool and potsize <= 4:                                                #IF we have made it here CheckFold, and are now aggressive, bet big
+            betSize = (minBet + maxBet) / 2
+            return "BET:" + str(betSize)
+        elif raiseBool and potsize <= 4:
+            raiseSize = (minRaise + maxRaise) / 2
+            return "RAISE:" + str(raiseSize)
+
+        elif betBool and streetDict['3'] < 2:                                         #Ideally, should prevent more than 3-bet
             betSize = min(potsize * 0.67, (minBet + maxBet) / 2)
             return "BET:" + str(betSize)
-        elif raiseBool and streetDict['3'] < 2:                                     #TODO - Ideally, should prevent more than 3-bet
+        elif raiseBool and streetDict['3'] < 2:                                     #Ideally, should prevent more than 3-bet
             betSize = min(potsize * 0.67, (minRaise + maxRaise) / 2)
             return "RAISE:" + str(betSize)
         elif odds >= 0.573 and raiseBool and streetDict['3'] < 3:       #PFR to be implemented here. When Aggressive, we want to RAISE 70% of the time and CALL 30% of the time.
