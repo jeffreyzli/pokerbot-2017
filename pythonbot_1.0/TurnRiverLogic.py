@@ -1,4 +1,6 @@
-from DiscardLogic import discard_logic_post_flop as discard_logic
+from DiscardLogic import discard_logic_post_turn as discard_logic
+#from DiscardLogic56 import discard_logic_post_flop as discard_logic
+#from DiscardLogicSimple import discard_logic_post_flop as discard_logic
 
 
 def action(game_data):
@@ -6,7 +8,7 @@ def action(game_data):
     # post-turn, pre-river
 
     if game_data.discard:
-        discard, card = discard_logic(game_data.current_hand, game_data.board_cards)
+        discard, card = discard_logic(game_data.current_hand, game_data.board_cards, game_data.discarded_flop_card)
         if discard:
             return 'DISCARD:' + card
         else:

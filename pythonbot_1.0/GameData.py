@@ -27,6 +27,7 @@ class GameData:
         self.c_bet = 0
         self.showdown_win = 0
         self.double_barrel = 0
+        self.discarded_flop_card = None
         # opponent post-flop stats
         self.opponent_c_bet = 0
         self.opponent_fold_c_bet = 0
@@ -128,7 +129,8 @@ class GameData:
 
         if self.discard:
             for action in current_last_actions:
-                if 'DISCARD' in action:
+                if 'DISCARD' in action and self.name in action:
+                    print("FLAG1")
                     old_card = action[8:10]
                     new_card = action[11:13]
                     self.current_hand[self.current_hand.index(old_card)] = new_card
