@@ -32,7 +32,6 @@ class Player:
 
             elif word == "GETACTION":
                 game_data.get_action(data_list)
-                print(game_data.time_bank)
 
                 if game_data.current_game_state is 'PREFLOP':
                     action = PreFlop.action(game_data)
