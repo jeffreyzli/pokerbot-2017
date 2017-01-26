@@ -1,4 +1,3 @@
-
 def action(game_data):
 
     # post-turn, pre-river
@@ -42,42 +41,54 @@ def action(game_data):
             game_data.discard = False
 
     aggressive = False
-    if game_data.current_hand_strength > 0.55:  # Decided this value after playing around with 0.50, 0.53, 0.55,
-        # 0.57, 0.60, 0.70
+    if game_data.aggression_factor or game_data.current_hand_strength > 0.55:  # Decided this value after playing around with 0.50, 0.53, 0.55, 0.57,
+        # 0.60, 0.70. %age of times we'd play given these thresholds: 0.50(40.72%), 0.53(32.12%), 0.55(25.18%),
+        # 0.57(19.31%), 0.60(11.31%), 0.70(2.71%)
         aggressive = True
+        game_data.aggression_factor = True
 
     if aggressive:
-        limit = game_data.legal_action('BET')
-        if limit is not None:
+        limits = game_data.legal_action('BET')
+        if limits is not None:
             if game_data.current_pot_size <= game_data.big_blind * 2:
-                bet = (limit[0] + limit[1]) / 2
+                bet = (limits[0] + limits[1]) / 2
+                if bet < limits[0]:
+                    bet = limits[0]
                 return 'BET:' + str(bet)
             else:
-                bet = min(game_data.current_pot_size * 5 / 3, (limit[0] + limit[1]) / 2)
+                bet = min(game_data.current_pot_size * 5 / 3, (limits[0] + limits[1]) / 2)
+                if bet < limits[0]:
+                    bet = limits[0]
                 return 'BET:' + str(bet)
         else:
-            limit = game_data.legal_action('RAISE')
-            if limit is not None:
+            limits = game_data.legal_action('RAISE')
+            if limits is not None:
                 if game_data.button and not game_data.has_four_bet:
-                    bet = min(game_data.current_pot_size * 5 / 3, (limit[0] + limit[1]) / 2)
+                    bet = min(game_data.current_pot_size * 5 / 3, (limits[0] + limits[1]) / 2)
+                    if bet < limits[0]:
+                        bet = limits[0]
                     return 'RAISE:' + str(bet)
                 elif not game_data.button and not game_data.has_three_bet:
-                    bet = min(game_data.current_pot_size * 5 / 3, (limit[0] + limit[1]) / 2)
+                    bet = min(game_data.current_pot_size * 5 / 3, (limits[0] + limits[1]) / 2)
+                    if bet < limits[0]:
+                        bet = limits[0]
                     return 'RAISE:' + str(bet)
                 elif game_data.current_hand_strength >= 0.573 and not game_data.has_bet_aggressively:
-                    bet = min(game_data.current_pot_size * 5 / 3, (limit[0] + limit[1]) / 2)
+                    bet = min(game_data.current_pot_size * 5 / 3, (limits[0] + limits[1]) / 2)
                     game_data.has_bet_aggressively = True
+                    if bet < limits[0]:
+                        bet = limits[0]
                     return 'RAISE:' + str(bet)
                 # PFR to be implemented here. When Aggressive, we want to RAISE 70% of the time and CALL 30% of the
                     # time.
-        limit = game_data.legal_action('CALL')
-        if limit:
+        limits = game_data.legal_action('CALL')
+        if limits:
             return 'CALL'
         else:
             return 'CHECK'
     else:
-        limit = game_data.legal_action('CHECK')
-        if limit:
+        limits = game_data.legal_action('CHECK')
+        if limits:
             return 'CHECK'
         else:
             return 'FOLD'

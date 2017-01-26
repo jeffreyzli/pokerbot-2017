@@ -22,7 +22,7 @@ class GameData:
         self.opponent_fold_pfr = 0
         self.opponent_fold_three_bet = 0
         # self post-flop stats
-        self.aggression_factor = 0.0
+        self.aggression_factor = False
         self.showdown = 0
         self.c_bet = 0
         self.showdown_win = 0
@@ -74,6 +74,7 @@ class GameData:
         self.has_four_bet = False
         self.opponent_has_four_bet = False
         self.has_bet_aggressively = False
+        self.aggression_factor = False
 
     def get_action(self, data_list):
         self.current_pot_size = int(data_list[1])
@@ -274,8 +275,7 @@ class GameData:
                     sub = legal_action[index:]
                     index = sub.index(':')
                     return [int(sub[:index]), int(sub[index+1:])]
-                else:
-                    return True
+                return True
         return None
 
     def hand_over(self, data_list):
