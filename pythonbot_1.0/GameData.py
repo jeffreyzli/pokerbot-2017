@@ -52,6 +52,7 @@ class GameData:
         self.discard = False
         self.has_five_bet = False
         self.has_bet_aggressively = False
+        self.time_bank = 0.0
 
     def new_hand(self, data_list):
         self.num_hands += 1
@@ -78,6 +79,7 @@ class GameData:
 
     def get_action(self, data_list):
         self.current_pot_size = int(data_list[1])
+        self.time_bank = float(data_list[-1])
 
         num_board_cards = int(data_list[2])
         self.street_dict[str(num_board_cards)] += 1
@@ -113,7 +115,9 @@ class GameData:
                 self.has_bet_aggressively = False
                 self.current_game_state = 'POSTFLOP'
         for i in range(num_board_cards):
-            self.board_cards.append(data_list[3 + i])
+            board_card = data_list[3 + i]
+            if board_card not in self.board_cards:
+                self.board_cards.append(board_card)
 
         index = 3 + num_board_cards
         num_last_actions = int(data_list[index])

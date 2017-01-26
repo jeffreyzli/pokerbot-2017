@@ -1,42 +1,14 @@
+from DiscardLogic import discard_logic_post_flop as discard_logic
+
+
 def action(game_data):
 
     # post-turn, pre-river
 
     if game_data.discard:
-        if game_data.current_hand_strength <= 0.55:  # WE ARE GOING TO DISCARD
-            card_one = game_data.current_hand[0][0]
-            card_two = game_data.current_hand[1][0]
-
-            if card_one == 'T':
-                card_one = 10
-            elif card_one == 'J':
-                card_one = 11
-            elif card_one == 'Q':
-                card_one = 12
-            elif card_one == 'K':
-                card_one = 13
-            elif card_one == 'A':
-                card_one = 14
-            else:
-                card_one = int(card_one)
-
-            if card_two == 'T':
-                card_two = 10
-            elif card_two == 'J':
-                card_two = 11
-            elif card_two == 'Q':
-                card_two = 12
-            elif card_two == 'K':
-                card_two = 13
-            elif card_two == 'A':
-                card_two = 14
-            else:
-                card_one = int(card_one)
-
-            if card_one <= card_two:
-                return "DISCARD:" + game_data.current_hand[0] + "\n"
-            else:
-                return "DISCARD:" + game_data.current_hand[1] + "\n"
+        discard, card = discard_logic(game_data.current_hand, game_data.board_cards)
+        if discard:
+            return 'DISCARD:' + card
         else:
             game_data.discard = False
 
