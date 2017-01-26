@@ -101,7 +101,6 @@ def discard_logic_post_turn(my_hand, board_cards, discarded_card = None):
     adjust = 0
 
     if discarded_card is not None:
-        print(discarded_card)
         deck.remove(discarded_card)
         adjust += 1
 
