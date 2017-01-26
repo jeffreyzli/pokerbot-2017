@@ -44,27 +44,21 @@ def discard_logic_post_flop(my_hand, board_cards):
         new_deck = list(deck)
         new_deck.remove(card_one)
         for card_two in new_deck:
-            new_deck_two = list(new_deck)
-            new_deck_two.remove(card_two)
-            for card_three in new_deck_two:
-                new_board = list(board)
-                new_board += [Card.new(card_two), Card.new(card_three)]
-                rank_h1_discard += evaluator.evaluate(new_hand, new_board)
-    rank_h1_discard /= (47*46*45)
+            new_board = list(board)
+            new_board += [Card.new(card_two)]
+            rank_h1_discard += evaluator.evaluate(new_hand, new_board)
+    rank_h1_discard /= (47*46)
 
     # rank_h0_discard:
     for card_one in deck:
-        new_hand = [Card.new(card_one), Card.new(my_hand[1])] # Discard myHand[0]
+        new_hand = [Card.new(card_one), Card.new(my_hand[1])]  # Discard myHand[0]
         new_deck = list(deck)
         new_deck.remove(card_one)
         for card_two in new_deck:
-            new_deck_two = list(new_deck)
-            new_deck_two.remove(card_two)
-            for card_three in new_deck_two:
-                new_board = list(board)
-                new_board += [Card.new(card_two), Card.new(card_three)]
-                rank_h0_discard += evaluator.evaluate(new_hand, new_board)
-    rank_h0_discard /= (47*46*45)
+            new_board = list(board)
+            new_board += [Card.new(card_two)]
+            rank_h0_discard += evaluator.evaluate(new_hand, new_board)
+    rank_h0_discard /= (47*46)
 
     best_rank = min(rank_no_discard, rank_h1_discard, rank_h0_discard)
 
@@ -101,7 +95,6 @@ def discard_logic_post_turn(my_hand, board_cards, discarded_card = None):
     adjust = 0
 
     if discarded_card is not None:
-        print(discarded_card)
         deck.remove(discarded_card)
         adjust += 1
 
