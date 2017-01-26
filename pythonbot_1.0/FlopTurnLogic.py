@@ -72,9 +72,17 @@ def action(game_data):
                     return 'RAISE:' + str(bet)
                 # PFR to be implemented here. When Aggressive, we want to RAISE 70% of the time and CALL 30% of the
                     # time.
-        return "CALL"
+        limit = game_data.legal_action('CALL')
+        if limit:
+            return 'CALL'
+        else:
+            return 'CHECK'
     else:
-        return "CHECK"
+        limit = game_data.legal_action('CHECK')
+        if limit:
+            return 'CHECK'
+        else:
+            return 'FOLD'
 # Change bet sizes to max of 2/3rd of Pot Size and odds*(average of min and max)
 # Discard Strategy Gen[1]:
 # WHEN to discard
