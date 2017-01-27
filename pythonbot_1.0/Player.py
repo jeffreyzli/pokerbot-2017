@@ -4,10 +4,8 @@ import sys
 
 from GameData import GameData
 
-import PreflopLogic as PreFlop
-import FlopTurnLogic as FlopTurn
-import TurnRiverLogic as TurnRiver
-import PostRiverLogic as PostRiver
+import PreFlopLogic as PreFlop
+import PostFlopLogic as PostFlop
 
 
 class Player:
@@ -35,12 +33,9 @@ class Player:
 
                 if game_data.current_game_state is 'PREFLOP':
                     action = PreFlop.action(game_data)
-                elif game_data.current_game_state is 'FLOPTURN':
-                    action = FlopTurn.action(game_data)
-                elif game_data.current_game_state is 'TURNRIVER':
-                    action = TurnRiver.action(game_data)
                 else:
-                    action = PostRiver.action(game_data)
+                    action = PostFlop.action(game_data)
+
                 s.send(action + "\n")
             elif word == "REQUESTKEYVALUES":
                 # At the end, the engine will allow your bot save key/value pairs.

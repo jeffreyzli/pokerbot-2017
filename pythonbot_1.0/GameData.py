@@ -27,6 +27,7 @@ class GameData:
         self.c_bet = 0
         self.showdown_win = 0
         self.double_barrel = 0
+        self.discarded_card = None
         # opponent post-flop stats
         self.opponent_c_bet = 0
         self.opponent_fold_c_bet = 0
@@ -76,6 +77,7 @@ class GameData:
         self.opponent_has_four_bet = False
         self.has_bet_aggressively = False
         self.aggression_factor = False
+        self.discarded_card = None
 
     def get_action(self, data_list):
         self.current_pot_size = int(data_list[1])
@@ -117,7 +119,7 @@ class GameData:
         for i in range(num_board_cards):
             board_card = data_list[3 + i]
             if board_card not in self.board_cards:
-                self.board_cards.append(board_card)
+                self.board_cards.append(data_list[3 + i])
 
         index = 3 + num_board_cards
         num_last_actions = int(data_list[index])
@@ -128,7 +130,7 @@ class GameData:
 
         if self.discard:
             for action in current_last_actions:
-                if 'DISCARD' in action:
+                if 'DISCARD' in action and self.name in action:
                     old_card = action[8:10]
                     new_card = action[11:13]
                     self.current_hand[self.current_hand.index(old_card)] = new_card
