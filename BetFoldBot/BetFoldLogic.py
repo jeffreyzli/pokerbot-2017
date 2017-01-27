@@ -54,7 +54,7 @@ def action(game_data):
             if discard:
                 return 'DISCARD:' + card
         game_data.discard = False
-    if 'High Card' in game_data.hand_class or 'Pair' in game_data.hand_class:
+    if 'High Card' in game_data.hand_class or 'Pair' in game_data.hand_class and 'Two Pair' not in game_data.hand_class:
         limits = game_data.legal_action('CHECK')
         if limits:
             return 'CHECK'

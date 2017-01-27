@@ -121,7 +121,7 @@ class GameData:
                 self.has_four_bet = False
                 self.opponent_has_four_bet = False
                 self.has_bet_aggressively = False
-                self.current_game_state = 'POSTFLOP'
+                self.current_game_state = 'POSTRIVER'
         for i in range(num_board_cards):
             board_card = data_list[3 + i]
             if board_card not in self.board_cards:
