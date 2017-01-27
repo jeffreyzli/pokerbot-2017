@@ -1,11 +1,13 @@
 import HandRankings as Hand
+from deuces.deuces import Card, Evaluator
 
 
 class GameData:
-    def __init__(self, name, opponent_name, bb):
+    def __init__(self, name, opponent_name, stack_size, bb):
         # match stats
         self.name = name
         self.opponent_name = opponent_name
+        self.starting_stack_size = int(stack_size)
         self.num_hands = 0
         self.num_wins = 0
         self.num_flop = 0
@@ -37,6 +39,8 @@ class GameData:
         self.current_pot_size = 0
         self.current_hand = []
         self.current_hand_strength = 0.0
+        self.hand_class = ''
+        self.hand_score = 0
         self.current_game_state = ''
         self.board_cards = []
         self.last_actions = []
@@ -54,6 +58,7 @@ class GameData:
         self.has_five_bet = False
         self.has_bet_aggressively = False
         self.time_bank = 0.0
+        self.opc = 0
 
     def new_hand(self, data_list):
         self.num_hands += 1
@@ -81,6 +86,7 @@ class GameData:
 
     def get_action(self, data_list):
         self.current_pot_size = int(data_list[1])
+        self.opc = self.starting_stack_size - self.current_pot_size
         self.time_bank = float(data_list[-1])
 
         num_board_cards = int(data_list[2])
@@ -115,11 +121,20 @@ class GameData:
                 self.has_four_bet = False
                 self.opponent_has_four_bet = False
                 self.has_bet_aggressively = False
-                self.current_game_state = 'POSTFLOP'
+                self.current_game_state = 'POSTRIVER'
         for i in range(num_board_cards):
             board_card = data_list[3 + i]
             if board_card not in self.board_cards:
                 self.board_cards.append(data_list[3 + i])
+        if num_board_cards > 0:
+            board_cards = []
+            for board_card in self.board_cards:
+                board_cards.append(Card.new(board_card))
+            hand = []
+            for card in self.current_hand:
+                hand.append(Card.new(card))
+            self.hand_score = Evaluator().evaluate(hand, board_cards)
+            self.hand_class = Evaluator().class_to_string(Evaluator().get_rank_class(self.hand_score))
 
         index = 3 + num_board_cards
         num_last_actions = int(data_list[index])
@@ -127,6 +142,7 @@ class GameData:
         current_last_actions = []
         for i in range(num_last_actions):
             current_last_actions.append(data_list[index + i])
+        self.last_actions.append(current_last_actions)
 
         if self.discard:
             for action in current_last_actions:
@@ -281,6 +297,11 @@ class GameData:
                     sub = legal_action[index:]
                     index = sub.index(':')
                     return [int(sub[:index]), int(sub[index+1:])]
+                if action == 'CALL':
+                    for last_action in self.last_actions[-1]:
+                        if 'RAISE' in last_action and self.opponent_name in last_action:
+                            sub = last_action[last_action.index(':')+1:]
+                            return int(sub[:sub.index(':')])
                 return True
         return None
 

@@ -18,14 +18,18 @@ def discard_logic_post_flop(my_hand, board_cards):
     val_one = cards_dict[my_hand[0][0]]
     val_two = cards_dict[my_hand[1][0]]
 
+    board_card_values = []
+    for board_card in board_cards:
+        board_card_values.append(cards_dict[board_card[0]])
+
     # if [A] [A] --> no discard
     if val_one == val_two:
         return False, None
     # elif [A] [B] with flop of [A] [C] [B] --> no discard
-    elif val_one in board_cards and val_two in board_cards:
+    elif val_one in board_card_values and val_two in board_card_values:
         return False, None
     # elif [Low] [High] with flop of [Low] [B] [C] --> discard High
-    elif min(val_one, val_two) in board_cards:
+    elif min(val_one, val_two) in board_card_values:
         if max(val_one, val_two) == val_one:
             return True, my_hand[0]
         else:
@@ -52,8 +56,10 @@ def discard_logic_post_turn(my_hand, board_cards, discarded_card=None):
     suit = None
     hand_count = 0
 
+    board_card_values = []
     for board_card in board_cards:
         suit_dict[board_card[1]] += 1
+        board_card_values.append(cards_dict[board_card[0]])
 
     # postTurn: IF 4 boardCards are the same suit AND
     if 4 in suit_dict.values():
@@ -92,9 +98,9 @@ def discard_logic_post_turn(my_hand, board_cards, discarded_card=None):
         if hand_count == 2:
             return False, None
 
-        # IF only one of our cards are that suit --> discard the non-suited hand, IF no pairs anywhere
+        # IF only one of our cards are that suit --> discard the non-suited card, IF no pairs anywhere
         elif hand_count == 1:
-            if val_one == val_two or val_one in board_cards or val_two in board_cards:
+            if val_one == val_two or val_one in board_card_values or val_two in board_card_values:
                 return False, None
             else:
                 for card in my_hand:
