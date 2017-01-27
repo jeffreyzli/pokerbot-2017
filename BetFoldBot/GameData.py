@@ -43,6 +43,7 @@ class GameData:
         self.hand_score = 0
         self.current_game_state = ''
         self.board_cards = []
+        self.board_score = 0
         self.last_actions = []
         self.current_legal_actions = []
         self.has_called = False
@@ -59,6 +60,7 @@ class GameData:
         self.has_bet_aggressively = False
         self.time_bank = 0.0
         self.opc = 0
+        self.current_stack_size = self.starting_stack_size
 
     def new_hand(self, data_list):
         self.num_hands += 1
@@ -86,7 +88,7 @@ class GameData:
 
     def get_action(self, data_list):
         self.current_pot_size = int(data_list[1])
-        self.opc = self.starting_stack_size - self.current_pot_size
+        self.opc = self.starting_stack_size - self.current_stack_size
         self.time_bank = float(data_list[-1])
 
         num_board_cards = int(data_list[2])
@@ -133,8 +135,17 @@ class GameData:
             hand = []
             for card in self.current_hand:
                 hand.append(Card.new(card))
+
             self.hand_score = Evaluator().evaluate(hand, board_cards)
             self.hand_class = Evaluator().class_to_string(Evaluator().get_rank_class(self.hand_score))
+        if num_board_cards == 5:
+            two_board_cards = []
+            three_board_cards = []
+            for index in range (2):
+                two_board_cards.append(Card.new(self.board_cards[index]))
+            for index in range (2, 5):
+                three_board_cards.append(Card.new(self.board_cards[index]))
+            self.board_score = Evaluator().evaluate(two_board_cards, three_board_cards)
 
         index = 3 + num_board_cards
         num_last_actions = int(data_list[index])
