@@ -91,4 +91,7 @@ def action(game_data):
             if game_data.hand_score < game_data.board_score:
                 game_data.current_pot_size = game_data.starting_stack_size - limits             # update current stack size
                 return 'CALL'
-        return 'CHECK'
+        limits = game_data.legal_action('CHECK')
+        if limits is not None:
+            return 'CHECK'
+        return 'FOLD'

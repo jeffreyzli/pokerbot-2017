@@ -234,7 +234,13 @@ class GameData:
                         if card[0] == pair_board_card:
                             new_board_cards.remove(card)
                             break
-                    temp_hand = Evaluator().evaluate(self.current_hand, new_board_cards)
+                    hand_temp = []
+                    for card in self.current_hand:
+                        hand_temp.append(Card.new(card))
+                    new_board_cards_eval = []
+                    for card in new_board_cards:
+                        new_board_cards_eval.append(Card.new(card))
+                    temp_hand = Evaluator().evaluate(hand_temp, new_board_cards_eval)
                     if "Two" in Evaluator().class_to_string(Evaluator().get_rank_class(temp_hand)):
                         self.board_score = self.hand_score + 10000
                     else:
@@ -270,10 +276,7 @@ class GameData:
                     else:
                         self.board_score = 0
                 else:
-                    print("ERROR")
                     self.board_score = 0
-
-
 
         if self.current_game_state == 'PREFLOP':
             if self.current_pot_size == 4:
