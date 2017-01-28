@@ -61,7 +61,7 @@ class GameData:
         self.time_bank = 0.0
         self.opc = 0
         self.current_stack_size = self.starting_stack_size
-        self.post_river_hand_rank = {"Straight Flush": 7, "Four of a Kind": 6, "Full House": 5, "Flush": 4, "Straight": 3, "Three of a Kind": 2, "Two Pair": 1}
+        self.post_river_hand_rank = {"Straight Flush": 7, "Four of a Kind": 6, "Full House": 5, "Flush": 4, "Straight": 3, "Three of a Kind": 2, "Two Pair": 1, "Pair": 0, "High Card": -1}
         self.hand_values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14}
 
     def new_hand(self, data_list):
