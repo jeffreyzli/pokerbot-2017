@@ -1,5 +1,6 @@
 from DiscardLogicSimple import discard_logic_post_flop, discard_logic_post_turn
 
+
 def pre_flop_hand_eval(my_hand, hand_strength):
     hand_values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9,
                    'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14}
@@ -34,20 +35,23 @@ def action(game_data):
         if pre_flop_hand_eval(game_data.current_hand, game_data.current_hand_strength):
             limits = game_data.legal_action('RAISE')
             if limits is not None:
-                game_data.current_pot_size = game_data.starting_stack_size -  limits[1]     # update current stack size
+                game_data.current_stack_size = game_data.starting_stack_size - limits[1]     # update current stack size
                 return 'RAISE:' + str(limits[1])
-            limits = game_data.legal_action('CHECK')
-            game_data.current_pot_size = game_data.starting_stack_size - limits             # update current stack size
+            limits = game_data.legal_action('CALL')
+            game_data.current_stack_size = game_data.starting_stack_size - limits            # update current stack size
             return 'CALL'
     # elif our hand is a pair AND > 0.55, or our hand is > 0.70, play call-check. We want bet limit else > 0.55.
         elif game_data.current_hand_strength > 0.55:
-            bet_limit = game_data.starting_stack_size # no bet_limit, play Call Check
-            if game_data.current_hand_strength < 0.65: # if not pair
-                bet_limit = 55 # bet_limit of 100
+            bet_limit = game_data.starting_stack_size  # no bet_limit, play Call Check
+            if game_data.current_hand_strength < 0.65:  # if not pair
+                bet_limit = 55  # bet_limit of 55
             limits = game_data.legal_action('CALL')
             if limits is not None and (game_data.current_pot_size - game_data.opc < bet_limit):
-                game_data.current_pot_size = game_data.starting_stack_size - limits         # update current stack size
+                game_data.current_stack_size = game_data.starting_stack_size - limits   # update current stack size
                 return 'CALL'
+        if game_data.current_pot_size == 3:
+            game_data.current_stack_size -= game_data.big_blind
+            return 'CALL'
         limits = game_data.legal_action('CHECK')
         if limits:
             return 'CHECK'
@@ -64,7 +68,7 @@ def action(game_data):
             if discard:
                 return 'DISCARD:' + card
         game_data.discard = False
-    if 'High Card' in game_data.hand_class or 'Pair' in game_data.hand_class and 'Two Pair' not in game_data.hand_class:
+    if 'High' in game_data.hand_class or 'Pair' in game_data.hand_class and 'Two' not in game_data.hand_class:
         limits = game_data.legal_action('CHECK')
         if limits:
             return 'CHECK'

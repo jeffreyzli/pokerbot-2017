@@ -124,28 +124,6 @@ class GameData:
                 self.opponent_has_four_bet = False
                 self.has_bet_aggressively = False
                 self.current_game_state = 'POSTRIVER'
-        for i in range(num_board_cards):
-            board_card = data_list[3 + i]
-            if board_card not in self.board_cards:
-                self.board_cards.append(data_list[3 + i])
-        if num_board_cards > 0:
-            board_cards = []
-            for board_card in self.board_cards:
-                board_cards.append(Card.new(board_card))
-            hand = []
-            for card in self.current_hand:
-                hand.append(Card.new(card))
-
-            self.hand_score = Evaluator().evaluate(hand, board_cards)
-            self.hand_class = Evaluator().class_to_string(Evaluator().get_rank_class(self.hand_score))
-        if num_board_cards == 5:
-            two_board_cards = []
-            three_board_cards = []
-            for index in range (2):
-                two_board_cards.append(Card.new(self.board_cards[index]))
-            for index in range (2, 5):
-                three_board_cards.append(Card.new(self.board_cards[index]))
-            self.board_score = Evaluator().evaluate(two_board_cards, three_board_cards)
 
         index = 3 + num_board_cards
         num_last_actions = int(data_list[index])
@@ -164,6 +142,29 @@ class GameData:
                     self.current_hand_strength = Hand.hand_win_odds(self.current_hand)
                     self.discard = False
                     break
+
+        for i in range(num_board_cards):
+            board_card = data_list[3 + i]
+            if board_card not in self.board_cards:
+                self.board_cards.append(data_list[3 + i])
+        if num_board_cards > 0:
+            board_cards = []
+            for board_card in self.board_cards:
+                board_cards.append(Card.new(board_card))
+            hand = []
+            for card in self.current_hand:
+                hand.append(Card.new(card))
+
+            self.hand_score = Evaluator().evaluate(hand, board_cards)
+            self.hand_class = Evaluator().class_to_string(Evaluator().get_rank_class(self.hand_score))
+        if num_board_cards == 5:
+            two_board_cards = []
+            three_board_cards = []
+            for i in range(2):
+                two_board_cards.append(Card.new(self.board_cards[i]))
+            for i in range(2, 5):
+                three_board_cards.append(Card.new(self.board_cards[i]))
+            self.board_score = Evaluator().evaluate(two_board_cards, three_board_cards)
 
         if self.current_game_state == 'PREFLOP':
             if self.current_pot_size == 4:
