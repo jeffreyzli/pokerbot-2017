@@ -1,6 +1,6 @@
 # from DiscardLogic import discard_logic_post_flop, discard_logic_post_turn
-from DiscardLogic56 import discard_logic_post_flop, discard_logic_post_turn
-# from DiscardLogicSimple import discard_logic_post_flop, discard_logic_post_turn
+# from DiscardLogic56 import discard_logic_post_flop, discard_logic_post_turn
+from DiscardLogicSimple import discard_logic_post_flop, discard_logic_post_turn
 
 
 def action(game_data):

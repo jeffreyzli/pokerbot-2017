@@ -23,7 +23,7 @@ class Player:
             word = data_list[0]
 
             if word == "NEWGAME":
-                game_data = GameData(data_list[1], data_list[2], data_list[4])
+                game_data = GameData(data_list[1], data_list[2], data_list[3], data_list[4])
 
             elif word == "NEWHAND":
                 game_data.new_hand(data_list)
