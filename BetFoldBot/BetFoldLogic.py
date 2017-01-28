@@ -88,6 +88,7 @@ def action(game_data):
                     return 'RAISE:' + str(limits[1])
         limits = game_data.legal_action('CALL')
         if limits is not None:
-            game_data.current_pot_size = game_data.starting_stack_size - limits             # update current stack size
-            return 'CALL'
+            if game_data.hand_score < game_data.board_score:
+                game_data.current_pot_size = game_data.starting_stack_size - limits             # update current stack size
+                return 'CALL'
         return 'CHECK'

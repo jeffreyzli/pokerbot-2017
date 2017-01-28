@@ -43,7 +43,7 @@ class GameData:
         self.hand_score = 0
         self.current_game_state = ''
         self.board_cards = []
-        self.board_score = 0
+        self.board_score = 10000
         self.last_actions = []
         self.current_legal_actions = []
         self.has_called = False
@@ -61,6 +61,8 @@ class GameData:
         self.time_bank = 0.0
         self.opc = 0
         self.current_stack_size = self.starting_stack_size
+        self.post_river_hand_rank = {"Straight Flush": 7, "Four of a Kind": 6, "Full House": 5, "Flush": 4, "Straight": 3, "Three of a Kind": 2, "Two Pair": 1}
+        self.hand_values = {'2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, '8': 8, '9': 9, 'T': 10, 'J': 11, 'Q': 12, 'K': 13, 'A': 14}
 
     def new_hand(self, data_list):
         self.num_hands += 1
@@ -157,6 +159,34 @@ class GameData:
 
             self.hand_score = Evaluator().evaluate(hand, board_cards)
             self.hand_class = Evaluator().class_to_string(Evaluator().get_rank_class(self.hand_score))
+        if num_board_cards == 3:
+            if "Three" in self.hand_class:
+                if self.board_cards[0][0] == self.board_cards[1][0] and self.board_cards[1][0] == self.board_cards[2][0]:
+                    self.board_score = 0
+                else:
+                    self.board_score = self.hand_score + 10000
+            # if all 3 board cards are same, self.board_score, board_score = hand_score
+        if num_board_cards == 4:
+            local_board_card = []
+            for i in range(3):
+                local_board_card.append(Card.new(self.board_cards[i]))
+            pseudo_hand_one = [Card.new(self.current_hand[0]), Card.new(self.board_cards[3])]
+            pseudo_hand_two = [Card.new(self.current_hand[1]), Card.new(self.board_cards[3])]
+            board_score_hand_1 = Evaluator().evaluate(pseudo_hand_one, local_board_card)
+            board_score_hand_2 = Evaluator().evaluate(pseudo_hand_two, local_board_card)
+            board_class_hand_1 = Evaluator().class_to_string(Evaluator().get_rank_class(board_score_hand_1))
+            board_class_hand_2 = Evaluator().class_to_string(Evaluator().get_rank_class(board_score_hand_2))
+            # if all three board cards are the same
+            if board_class_hand_1 is self.hand_class and board_class_hand_2 is self.hand_class:
+                # if all three board cards are TWO PAIR and we have a Pocket Pair, proceed
+                if "Two" in board_class_hand_1 and self.current_hand[0][0] == self.current_hand[1][0]:
+                    self.board_score = self.hand_score + 10000
+                else:
+                    self.board_score = 0
+            # if the board cards are not the same, removing one hand card made it worse. proceed
+            else:
+                self.board_score = self.hand_score + 10000
+
         if num_board_cards == 5:
             two_board_cards = []
             three_board_cards = []
@@ -164,7 +194,86 @@ class GameData:
                 two_board_cards.append(Card.new(self.board_cards[i]))
             for i in range(2, 5):
                 three_board_cards.append(Card.new(self.board_cards[i]))
-            self.board_score = Evaluator().evaluate(two_board_cards, three_board_cards)
+            board_score = Evaluator().evaluate(two_board_cards, three_board_cards)
+            board_class = Evaluator().class_to_string(Evaluator().get_rank_class(board_score))
+            if self.post_river_hand_rank[self.hand_class] > self.post_river_hand_rank[board_class]:
+                self.board_score = self.hand_score + 10000
+            # if the class of our hand is the same as the class of the board
+            elif self.post_river_hand_rank[self.hand_class] < self.post_river_hand_rank[board_class]:
+                print("MORE ERROR")
+                self.board_score = 0
+            else:
+                local_board_card = []
+                for i in range(4):
+                    local_board_card.append(Card.new(self.board_cards[i]))
+                pseudo_hand_one = [Card.new(self.current_hand[0]), Card.new(self.board_cards[4])]
+                pseudo_hand_two = [Card.new(self.current_hand[1]), Card.new(self.board_cards[4])]
+                board_score_hand_1 = Evaluator().evaluate(pseudo_hand_one, local_board_card)
+                board_score_hand_2 = Evaluator().evaluate(pseudo_hand_two, local_board_card)
+                board_class_hand_1 = Evaluator().class_to_string(Evaluator().get_rank_class(board_score_hand_1))
+                board_class_hand_2 = Evaluator().class_to_string(Evaluator().get_rank_class(board_score_hand_2))
+                if "Three" in self.hand_class or "Four" in self.hand_class:
+                    if board_class_hand_1 is self.hand_class and board_class_hand_2 is self.hand_class:
+                        self.board_score = 0
+                    else:
+                        self.board_score = self.hand_score + 10000
+                elif "Two" in self.hand_class:
+                    board_card_dict = {}
+                    pair_board_card = None
+                    new_board_cards = list(self.board_cards)
+                    for card in self.board_cards:
+                        if card[0] in board_card_dict.keys():
+                            board_card_dict[card[0]] += 1
+                        else:
+                            board_card_dict[card[0]] = 1
+                    for key in board_card_dict.keys():
+                        if board_card_dict[key] == 2:
+                            pair_board_card = key
+                            break
+                    for card in new_board_cards:
+                        if card[0] == pair_board_card:
+                            new_board_cards.remove(card)
+                            break
+                    temp_hand = Evaluator().evaluate(self.current_hand, new_board_cards)
+                    if "Two" in Evaluator().class_to_string(Evaluator().get_rank_class(temp_hand)):
+                        self.board_score = self.hand_score + 10000
+                    else:
+                        self.board_score = 0
+
+                elif "Full" in self.hand_class:
+                    if self.current_hand[0][0] == self.current_hand[1][0]:
+                        self.board_score = self.hand_score + 10000
+                    else:
+                        self.board_score = 0
+                elif "Straight Flush" in self.hand_class:
+                    # need to implement straight flush logic, but so rare it's whatever
+                    self.board_score = 0
+                elif "Flush" in self.hand_class:
+                    if self.current_hand[0][1] == self.board_cards[0][1] or self.current_hand[1][1] == self.board_cards[0][1]:
+                        self.board_score = self.hand_score + 1000
+                    else:
+                        self.board_score = 0
+                elif "Straight" in self.hand_class:
+                    board_straight_vals = []
+                    low_board_val = self.hand_values[self.board_cards[0][0]]
+                    high_board_val = self.hand_values[self.board_cards[0][0]]
+                    for card in self.board_cards:
+                        board_straight_vals.append(self.hand_values[card[0]])
+                        if self.hand_values[card[0]] < low_board_val:
+                            low_board_val = self.hand_values[card[0]]
+                        elif self.hand_values[card[0]] > high_board_val:
+                            high_board_val = self.hand_values[card[0]]
+                    board_straight_vals.append(low_board_val - 1)
+                    board_straight_vals.append(high_board_val + 1)
+                    if self.hand_values[self.current_hand[0][0]] in board_straight_vals or self.hand_values[self.current_hand[1][0]] in board_straight_vals:
+                        self.board_score = self.hand_score + 10000
+                    else:
+                        self.board_score = 0
+                else:
+                    print("ERROR")
+                    self.board_score = 0
+
+
 
         if self.current_game_state == 'PREFLOP':
             if self.current_pot_size == 4:
