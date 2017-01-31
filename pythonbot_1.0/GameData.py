@@ -4,6 +4,11 @@ from deuces.deuces import Card, Evaluator
 
 class GameData:
     def __init__(self, name, opponent_name, stack_size, bb):
+        self.deck = ['2c', '2d', '2h', '2s', '3c', '3d', '3h', '3s', '4c', '4d', '4h', '4s', '5c', '5d', '5h', '5s',
+                     '6c', '6d',
+                     '6h', '6s', '7c', '7d', '7h', '7s', '8c', '8d', '8h', '8s', '9c', '9d', '9h', '9s', 'Tc', 'Td',
+                     'Th', 'Ts',
+                     'Jc', 'Jd', 'Jh', 'Js', 'Qc', 'Qd', 'Qh', 'Qs', 'Kc', 'Kd', 'Kh', 'Ks', 'Ac', 'Ad', 'Ah', 'As']
         # match stats
         self.name = name
         self.opponent_name = opponent_name
@@ -296,22 +301,22 @@ class GameData:
                     index = legal_action.index(':') + 1
                     sub = legal_action[index:]
                     index = sub.index(':')
-                    return [int(sub[:index]), int(sub[index+1:])]
+                    return [int(sub[:index]), int(sub[index + 1:])]
                 if action == 'CALL':
                     for last_action in self.last_actions[-1]:
                         if 'RAISE' in last_action and self.opponent_name in last_action:
-                            sub = last_action[last_action.index(':')+1:]
+                            sub = last_action[last_action.index(':') + 1:]
                             return int(sub[:sub.index(':')])
                 return True
         return None
 
     def hand_over(self, data_list):
         num_board_cards = data_list[3]
-        index = 4+num_board_cards
+        index = 4 + num_board_cards
         num_last_actions = data_list[index]
         current_last_actions = []
         for i in range(num_last_actions):
-            current_last_actions.append(data_list[index+i])
+            current_last_actions.append(data_list[index + i])
         if self.current_game_state == 'PREFLOP':
             for action in current_last_actions:
                 if 'FOLD' in action and self.opponent_name in action:
