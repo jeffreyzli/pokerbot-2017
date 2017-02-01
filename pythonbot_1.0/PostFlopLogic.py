@@ -1,6 +1,6 @@
-# from DiscardLogic import discard_logic_post_flop, discard_logic_post_turn
+from DiscardLogic import discard_logic_post_flop, discard_logic_post_turn
 # from DiscardLogic56 import discard_logic_post_flop, discard_logic_post_turn
-from DiscardLogicSimple import discard_logic_post_flop, discard_logic_post_turn
+# from DiscardLogicSimple import discard_logic_post_flop, discard_logic_post_turn
 
 
 def action(game_data):
@@ -41,13 +41,13 @@ def action(game_data):
             else:
                 return "DISCARD:" + game_data.current_hand[1]'''
         if game_data.current_game_state is 'FLOPTURN':
-            discard, card = discard_logic_post_flop(game_data.current_hand, game_data.board_cards)
+            discard, card = discard_logic_post_flop(game_data.current_hand, game_data.board_cards, game_data.deck)
             if discard:
                 game_data.discarded_card = card
                 return 'DISCARD:' + card
         elif game_data.current_game_state is 'TURNRIVER':
             discard, card = discard_logic_post_turn(game_data.current_hand, game_data.board_cards,
-                                                    game_data.discarded_card)
+                                                    game_data.deck, game_data.discarded_card)
             if discard:
                 return 'DISCARD:' + card
         game_data.discard = False
