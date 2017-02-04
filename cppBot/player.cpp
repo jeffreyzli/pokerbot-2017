@@ -26,6 +26,9 @@ void Player::run(tcp::iostream &stream) {
     const int WORST_PAIR = 1278;
     const int WORST_TWO = 4138;
     const int WORST_THREE = 4996;
+    const int BEST_THREE = 5853;
+    const int WORST_FOUR = 7297;
+    const int BEST_FOUR = 7452;
     
     /*
      rank < 1278 high card
@@ -292,7 +295,7 @@ void Player::run(tcp::iostream &stream) {
     std::string opponent_name;
     int stack_size;
     int big_blind;
-    std::string time_bank;
+    double time_bank;
     int hand_id;
     bool button;
     int pot_size;
@@ -316,11 +319,20 @@ void Player::run(tcp::iostream &stream) {
     bool can_check = false;
     bool can_discard = false;
     std::string discarded_card;
+    bool full_discard = false;
+    std::map<char, int> suits;
+    suits.insert(std::pair<char, int>('s', 0));
+    suits.insert(std::pair<char, int>('d', 0));
+    suits.insert(std::pair<char, int>('h', 0));
+    suits.insert(std::pair<char, int>('c', 0));
+    int num_hands;
     
     // modular strategy
     int limit_preflop = 50;
     int limit_pair = 20;
     int limit_two = 50;
+    double time_limit = 1;
+    double time_per = 0.002;
     
     while (std::getline(stream, line)) {
         
@@ -337,41 +349,94 @@ void Player::run(tcp::iostream &stream) {
         
         if (GETACTION.compare(first_word) == 0) {
             // extract information
-            pot_size = atoi(packet[1].c_str());
-            int num_board_cards = atoi(packet[2].c_str());
-            street[num_board_cards] += 1;
+            pot_size = std::stoi(packet[1]);
+            int num_board_cards = std::stoi(packet[2]);
+            ++street[num_board_cards];
             int index = 3;
-            for (int i = 0; i < num_board_cards; i++) {
+            for (int i = 0; i < num_board_cards; ++i) {
                 if(board_cards[i].compare("") == 0) {
                     board_cards[i] = packet[index+i];
                 }
             }
             index += num_board_cards;
-            int num_last_actions = atoi(packet[index].c_str());
+            int num_last_actions = std::stoi(packet[index]);
             std::string *last_actions = NULL;
-            index += 1;
+            ++index;
             last_actions = new std::string[num_last_actions];
-            for (int i = 0; i < num_last_actions; i++) {
+            for (int i = 0; i < num_last_actions; ++i) {
                 last_actions[i] = packet[index+i];
             }
             index += num_last_actions;
-            int num_legal_actions = atoi(packet[index].c_str());
+            int num_legal_actions = std::stoi(packet[index]);
             std::string *legal_actions = NULL;
-            index += 1;
+            ++index;
             legal_actions = new std::string[num_legal_actions];
-            for (int i = 0; i < num_legal_actions; i++) {
+            for (int i = 0; i < num_legal_actions; ++i) {
                 legal_actions[i] = packet[index+i];
             }
-            time_bank = packet.back();
+            time_bank = std::stod(packet.back());
+            full_discard = time_bank - (num_hands - hand_id) * time_per > time_limit;
             // update hand if discard
             if(can_discard) {
-                for (int i = 0; i < num_last_actions; i++) {
+                for (int i = 0; i < num_last_actions; ++i) {
                     if (last_actions[i].find(DISCARD) != std::string::npos && last_actions[i].find(name) != std::string::npos) {
                         if(card_one.compare(discarded_card) == 0) {
                             card_one = last_actions[i].substr(11, 2);
                         } else {
                             card_two = last_actions[i].substr(11, 2);
                         }
+                        if (state.compare(FLOPTURN) == 0) {
+                            hand_rank = eval.GetRank(deck[card_one], deck[card_two], deck[board_cards[0]], deck[board_cards[1]], deck[board_cards[2]]);
+                            if (hand_rank < WORST_PAIR) {
+                                hand_class = HIGH_CLASS;
+                            } else if (hand_rank < WORST_TWO) {
+                                hand_class = PAIR_CLASS;
+                            } else if (hand_rank < WORST_THREE) {
+                                hand_class = TWO_CLASS;
+                            } else if (hand_rank > BEST_THREE){
+                                hand_class = THREE_CLASS;
+                            } else if (std::distance(CARD_VALUES, std::find(CARD_VALUES, CARD_VALUES+15, std::string(1, board_cards[0][0]))) == std::distance(CARD_VALUES, std::find(CARD_VALUES, CARD_VALUES+15, std::string(1, board_cards[1][0]))) && std::distance(CARD_VALUES, std::find(CARD_VALUES, CARD_VALUES+15, std::string(1, board_cards[1][0]))) == std::distance(CARD_VALUES, std::find(CARD_VALUES, CARD_VALUES+15, std::string(1, board_cards[2][0])))) {
+                                hand_class = HIGH_CLASS;
+                            } else {
+                                hand_class = THREE_CLASS;
+                            }
+                        } else {
+                            hand_rank = eval.GetRank(deck[card_one], deck[card_two], deck[board_cards[0]], deck[board_cards[1]], deck[board_cards[2]], deck[board_cards[3]]);
+                            if (hand_rank < WORST_PAIR) {
+                                hand_class = HIGH_CLASS;
+                            } else if (hand_rank < WORST_TWO) {
+                                bool involved = false;
+                                for (int j = 0; j < num_board_cards; ++j) {
+                                    if (card_one.compare(board_cards[j]) == 0) {
+                                        involved = true;
+                                    } else if (card_two.compare(board_cards[j]) == 0) {
+                                        involved = true;
+                                    }
+                                    if (involved) {
+                                        hand_class = PAIR_CLASS;
+                                    } else {
+                                        hand_class = HIGH_CLASS;
+                                    }
+                                }
+                            } else if (hand_rank < WORST_THREE) {
+                                hand_class = TWO_CLASS;
+                            } else if (hand_rank <= BEST_FOUR && hand_rank >= WORST_FOUR) {
+                                int rank_one = eval.GetRank(deck[card_two], deck[board_cards[0]], deck[board_cards[1]], deck[board_cards[2]], deck[board_cards[3]]);
+                                int rank_two = eval.GetRank(deck[card_one], deck[board_cards[0]], deck[board_cards[1]], deck[board_cards[2]], deck[board_cards[3]]);
+                                if (rank_one <= BEST_FOUR && rank_one >= WORST_FOUR && rank_two <= BEST_FOUR && rank_two >= WORST_FOUR) {
+                                    hand_class = HIGH_CLASS;
+                                }
+                            } else if (hand_rank >= WORST_THREE && hand_rank <= BEST_THREE) {
+                                int rank_one = eval.GetRank(deck[card_two], deck[board_cards[0]], deck[board_cards[1]], deck[board_cards[2]], deck[board_cards[3]]);
+                                int rank_two = eval.GetRank(deck[card_one], deck[board_cards[0]], deck[board_cards[1]], deck[board_cards[2]], deck[board_cards[3]]);
+                                if (rank_one >= WORST_THREE && rank_one <= BEST_THREE && rank_two >= WORST_THREE && rank_two <= BEST_THREE) {
+                                    hand_class = HIGH_CLASS;
+                                }
+                            } else {
+                                hand_class = THREE_CLASS;
+                            }
+                        }
+                        break;
                     }
                 }
             }
@@ -397,6 +462,18 @@ void Player::run(tcp::iostream &stream) {
                     hand_class = PAIR_CLASS;
                 } else if (hand_rank < WORST_THREE) {
                     hand_class = TWO_CLASS;
+                } else if (hand_rank <= BEST_FOUR && hand_rank >= WORST_FOUR) {
+                    int rank_one = eval.GetRank(deck[card_two], deck[board_cards[0]], deck[board_cards[1]], deck[board_cards[2]], deck[board_cards[3]]);
+                    int rank_two = eval.GetRank(deck[card_one], deck[board_cards[0]], deck[board_cards[1]], deck[board_cards[2]], deck[board_cards[3]]);
+                    if (rank_one <= BEST_FOUR && rank_one >= WORST_FOUR && rank_two <= BEST_FOUR && rank_two >= WORST_FOUR) {
+                        hand_class = HIGH_CLASS;
+                    }
+                } else if (hand_rank >= WORST_THREE && hand_rank <= BEST_THREE) {
+                    int rank_one = eval.GetRank(deck[card_two], deck[board_cards[0]], deck[board_cards[1]], deck[board_cards[2]], deck[board_cards[3]]);
+                    int rank_two = eval.GetRank(deck[card_one], deck[board_cards[0]], deck[board_cards[1]], deck[board_cards[2]], deck[board_cards[3]]);
+                    if (rank_one >= WORST_THREE && rank_one <= BEST_THREE && rank_two >= WORST_THREE && rank_two <= BEST_THREE) {
+                        hand_class = HIGH_CLASS;
+                    }
                 } else {
                     hand_class = THREE_CLASS;
                 }
@@ -410,13 +487,16 @@ void Player::run(tcp::iostream &stream) {
                     hand_class = PAIR_CLASS;
                 } else if (hand_rank < WORST_THREE) {
                     hand_class = TWO_CLASS;
+                } else if (hand_rank > BEST_THREE){
+                    hand_class = THREE_CLASS;
+                } else if (std::distance(CARD_VALUES, std::find(CARD_VALUES, CARD_VALUES+15, std::string(1, board_cards[0][0]))) == std::distance(CARD_VALUES, std::find(CARD_VALUES, CARD_VALUES+15, std::string(1, board_cards[1][0]))) && std::distance(CARD_VALUES, std::find(CARD_VALUES, CARD_VALUES+15, std::string(1, board_cards[1][0]))) == std::distance(CARD_VALUES, std::find(CARD_VALUES, CARD_VALUES+15, std::string(1, board_cards[2][0])))) {
+                        hand_class = HIGH_CLASS;
                 } else {
                     hand_class = THREE_CLASS;
                 }
                 street[num_board_cards] = 0;
                 state = FLOPTURN;
             }
-            
             // logic
             // check legal moves; if possible, set min/max bet/raise limits
             action = "";
@@ -425,7 +505,7 @@ void Player::run(tcp::iostream &stream) {
             can_call = false;
             can_check = false;
             can_discard = false;
-            for (int i = 0; i < num_legal_actions; i++) {
+            for (int i = 0; i < num_legal_actions; ++i) {
                 if (legal_actions[i].find(RAISE) != std::string::npos) {
                     can_raise = true;
                     limits[0] = legal_actions[i].substr(6, legal_actions[i].find_last_of(COLON)-6);
@@ -488,144 +568,227 @@ void Player::run(tcp::iostream &stream) {
                             if(can_raise) {
                                 action = RAISE + COLON + limits[1];
                             }
-                        } else if (can_call) {
+                        } else if (can_call && contribution + opponent_addition < limit_preflop) {
                             action = CALL;
                         }
                     }
                 }
             } else if (state.compare(FLOPTURN) == 0 || state.compare(TURNRIVER) == 0) {
-                if (can_discard) {
-                    int rank_no_discard = 0;
-                    int rank_discard_one = 0;
-                    int rank_discard_two = 0;
-                    std::string eval_card_one, eval_card_two, eval_card_three;
-                    bool loop_one = true;
-                    bool loop_two = true;
-                    bool loop_three = true;
-                    if (state.compare(FLOPTURN) == 0) {
-                        for (int i = 0; i < 52; i++) {
-                            eval_card_one = cards[i];
-                            for (int i = 0; i < num_board_cards; i++) {
-                                if (board_cards[i].compare(eval_card_one) == 0) {
+                if (can_discard && hand_class.compare(THREE_CLASS) != 0) {
+                    if (full_discard) {
+                        int rank_no_discard = 0;
+                        int rank_discard_one = 0;
+                        int rank_discard_two = 0;
+                        std::string eval_card_one, eval_card_two, eval_card_three;
+                        bool loop_one = true;
+                        bool loop_two = true;
+                        bool loop_three = true;
+                        if (state.compare(FLOPTURN) == 0) {
+                            for (int n = 0; n < 52; ++n) {
+                                eval_card_one = cards[n];
+                                for (int i = 0; i < num_board_cards; ++i) {
+                                    if (board_cards[i].compare(eval_card_one) == 0) {
+                                        loop_one = false;
+                                    }
+                                }
+                                if (card_one.compare(eval_card_one) == 0) {
+                                    loop_one = false;
+                                } else if (card_two.compare(eval_card_one) == 0) {
                                     loop_one = false;
                                 }
-                            }
-                            if (card_one.compare(eval_card_one) == 0) {
-                                loop_one = false;
-                            } else if (card_two.compare(eval_card_one) == 0) {
-                                loop_one = false;
-                            }
-                            if (loop_one) {
-                                for (int j = 0; j < i; j++) {
-                                    eval_card_two = cards[j];
-                                    for (int i = 0; i < num_board_cards; i++) {
-                                        if (board_cards[i].compare(eval_card_two) == 0) {
+                                if (loop_one) {
+                                    for (int j = 0; j < n; ++j) {
+                                        eval_card_two = cards[j];
+                                        for (int i = 0; i < num_board_cards; ++i) {
+                                            if (board_cards[i].compare(eval_card_two) == 0) {
+                                                loop_two = false;
+                                            }
+                                        }
+                                        if (card_one.compare(eval_card_two) == 0) {
+                                            loop_two = false;
+                                        } else if (card_two.compare(eval_card_two) == 0) {
+                                            loop_two = false;
+                                        } else if(eval_card_one.compare(eval_card_two) == 0) {
                                             loop_two = false;
                                         }
-                                    }
-                                    if (card_one.compare(eval_card_two) == 0) {
-                                        loop_two = false;
-                                    } else if (card_two.compare(eval_card_two) == 0) {
-                                        loop_two = false;
-                                    } else if(eval_card_one.compare(eval_card_two) == 0) {
-                                        loop_two = false;
-                                    }
-                                    if (loop_two) {
-                                        if (SevenEval::GetRank(deck[eval_card_one], deck[eval_card_two], deck[card_one], deck[card_two], deck[board_cards[0]], deck[board_cards[1]], deck[board_cards[2]]) >= WORST_THREE) {
-                                            rank_no_discard++;
-                                        }
-                                        for (std::map<std::string, int>::iterator iter = deck.begin(); iter != deck.end(); iter++) {
-                                            eval_card_three = iter->first;
-                                            for (int i = 0; i < num_board_cards; i++) {
-                                                if (board_cards[i].compare(eval_card_three) == 0) {
+                                        if (loop_two) {
+                                            if (SevenEval::GetRank(deck[eval_card_one], deck[eval_card_two], deck[card_one], deck[card_two], deck[board_cards[0]], deck[board_cards[1]], deck[board_cards[2]]) >= WORST_THREE) {
+                                                rank_no_discard++;
+                                            }
+                                            for (std::map<std::string, int>::iterator iter = deck.begin(); iter != deck.end(); ++iter) {
+                                                eval_card_three = iter->first;
+                                                for (int i = 0; i < num_board_cards; ++i) {
+                                                    if (board_cards[i].compare(eval_card_three) == 0) {
+                                                        loop_three = false;
+                                                    }
+                                                }
+                                                if (card_one.compare(eval_card_three) == 0) {
+                                                    loop_three = false;
+                                                } else if (card_two.compare(eval_card_three) == 0) {
+                                                    loop_three = false;
+                                                } else if(eval_card_one.compare(eval_card_three) == 0) {
+                                                    loop_three = false;
+                                                } else if(eval_card_two.compare(eval_card_three) == 0) {
                                                     loop_three = false;
                                                 }
-                                            }
-                                            if (card_one.compare(eval_card_three) == 0) {
-                                                loop_three = false;
-                                            } else if (card_two.compare(eval_card_three) == 0) {
-                                                loop_three = false;
-                                            } else if(eval_card_one.compare(eval_card_three) == 0) {
-                                                loop_three = false;
-                                            } else if(eval_card_two.compare(eval_card_three) == 0) {
-                                                loop_three = false;
-                                            }
-                                            if (loop_three) {
-                                                if (SevenEval::GetRank(deck[eval_card_one], deck[eval_card_two], deck[eval_card_three], deck[card_two], deck[board_cards[0]], deck[board_cards[1]], deck[board_cards[2]]) >= WORST_THREE) {
-                                                    rank_discard_one++;
+                                                if (loop_three) {
+                                                    if (SevenEval::GetRank(deck[eval_card_one], deck[eval_card_two], deck[eval_card_three], deck[card_two], deck[board_cards[0]], deck[board_cards[1]], deck[board_cards[2]]) >= WORST_THREE) {
+                                                        rank_discard_one++;
+                                                    }
+                                                    if (SevenEval::GetRank(deck[eval_card_one], deck[eval_card_two], deck[eval_card_three], deck[card_one], deck[board_cards[0]], deck[board_cards[1]], deck[board_cards[2]]) >= WORST_THREE) {
+                                                        rank_discard_two++;
+                                                    }
                                                 }
-                                                if (SevenEval::GetRank(deck[eval_card_one], deck[eval_card_two], deck[eval_card_three], deck[card_one], deck[board_cards[0]], deck[board_cards[1]], deck[board_cards[2]]) >= WORST_THREE) {
-                                                    rank_discard_two++;
-                                                }
+                                                loop_three = true;
                                             }
-                                            loop_three = true;
                                         }
+                                        loop_two = true;
                                     }
-                                    loop_two = true;
                                 }
+                                loop_one = true;
                             }
-                            loop_one = true;
-                        }
-                        rank_no_discard *= 45;
-                    } else {
-                        for (std::map<std::string, int>::iterator it = deck.begin(); it != deck.end(); it++) {
-                            eval_card_one = it->first;
-                            for (int i = 0; i < num_board_cards; i++) {
-                                if (board_cards[i].compare(eval_card_one) == 0) {
+                            rank_no_discard *= 45;
+                        } else {
+                            for (std::map<std::string, int>::iterator it = deck.begin(); it != deck.end(); ++it) {
+                                eval_card_one = it->first;
+                                for (int i = 0; i < num_board_cards; ++i) {
+                                    if (board_cards[i].compare(eval_card_one) == 0) {
+                                        loop_one = false;
+                                    }
+                                }
+                                if (card_one.compare(eval_card_one) == 0) {
+                                    loop_one = false;
+                                } else if (card_two.compare(eval_card_one) == 0) {
+                                    loop_one = false;
+                                } else if (discarded_card.compare(eval_card_one) == 0) {
                                     loop_one = false;
                                 }
-                            }
-                            if (card_one.compare(eval_card_one) == 0) {
-                                loop_one = false;
-                            } else if (card_two.compare(eval_card_one) == 0) {
-                                loop_one = false;
-                            } else if (discarded_card.compare(eval_card_one) == 0) {
-                                loop_one = false;
-                            }
-                            if (loop_one) {
-                                if (SevenEval::GetRank(deck[eval_card_one], deck[card_one], deck[card_two], deck[board_cards[0]], deck[board_cards[1]], deck[board_cards[2]], deck[board_cards[3]]) >= WORST_THREE) {
-                                    rank_no_discard++;
-                                }
-                                for (std::map<std::string, int>::iterator ite = deck.begin(); ite != deck.end(); ite++) {
-                                    eval_card_two = ite->first;
-                                    for (int i = 0; i < num_board_cards; i++) {
-                                        if (board_cards[i].compare(eval_card_two) == 0) {
+                                if (loop_one) {
+                                    if (SevenEval::GetRank(deck[eval_card_one], deck[card_one], deck[card_two], deck[board_cards[0]], deck[board_cards[1]], deck[board_cards[2]], deck[board_cards[3]]) >= WORST_THREE) {
+                                        rank_no_discard++;
+                                    }
+                                    for (std::map<std::string, int>::iterator ite = deck.begin(); ite != deck.end(); ++ite) {
+                                        eval_card_two = ite->first;
+                                        for (int i = 0; i < num_board_cards; ++i) {
+                                            if (board_cards[i].compare(eval_card_two) == 0) {
+                                                loop_two = false;
+                                            }
+                                        }
+                                        if (card_one.compare(eval_card_two) == 0) {
+                                            loop_two = false;
+                                        } else if (card_two.compare(eval_card_two) == 0) {
+                                            loop_two = false;
+                                        } else if(eval_card_one.compare(eval_card_two) == 0) {
+                                            loop_two = false;
+                                        } else if (discarded_card.compare(eval_card_two) == 0) {
                                             loop_two = false;
                                         }
-                                    }
-                                    if (card_one.compare(eval_card_two) == 0) {
-                                        loop_two = false;
-                                    } else if (card_two.compare(eval_card_two) == 0) {
-                                        loop_two = false;
-                                    } else if(eval_card_one.compare(eval_card_two) == 0) {
-                                        loop_two = false;
-                                    } else if (discarded_card.compare(eval_card_two) == 0) {
-                                        loop_two = false;
-                                    }
-                                    if (loop_two) {
-                                        if (SevenEval::GetRank(deck[eval_card_one], deck[eval_card_two], deck[card_two], deck[board_cards[0]], deck[board_cards[1]], deck[board_cards[2]], deck[board_cards[3]]) >= WORST_THREE) {
-                                            rank_discard_one++;
+                                        if (loop_two) {
+                                            if (SevenEval::GetRank(deck[eval_card_one], deck[eval_card_two], deck[card_two], deck[board_cards[0]], deck[board_cards[1]], deck[board_cards[2]], deck[board_cards[3]]) >= WORST_THREE) {
+                                                rank_discard_one++;
+                                            }
+                                            if (SevenEval::GetRank(deck[eval_card_one], deck[eval_card_two], deck[card_one], deck[board_cards[0]], deck[board_cards[1]], deck[board_cards[2]], deck[board_cards[3]]) >= WORST_THREE) {
+                                                rank_discard_two++;
+                                            }
                                         }
-                                        if (SevenEval::GetRank(deck[eval_card_one], deck[eval_card_two], deck[card_one], deck[board_cards[0]], deck[board_cards[1]], deck[board_cards[2]], deck[board_cards[3]]) >= WORST_THREE) {
-                                            rank_discard_two++;
-                                        }
+                                        loop_two = true;
                                     }
-                                    loop_two = true;
+                                }
+                                loop_one = true;
+                            }
+                            int adjust = discarded_card.compare("") == 0 ? 1 : 0;
+                            rank_no_discard *= (45 - adjust);
+                        }
+                        int choice = std::max(rank_no_discard, rank_discard_one);
+                        choice = std::max(choice, rank_discard_two);
+                        if (choice == rank_discard_one) {
+                            action = DISCARD + COLON + card_one;
+                            discarded_card = card_one;
+                        } else if (choice == rank_discard_two) {
+                            action = DISCARD + COLON + card_two;
+                            discarded_card = card_two;
+                        }
+                    } else {
+                        for (int i = 0; i < num_board_cards; ++i) {
+                            ++suits[board_cards[i][1]];
+                        }
+                        if (suits[card_one[1]] >= 3) {
+                            if (card_one[1] != card_two[1]) {
+                                action = DISCARD + COLON + card_two;
+                                discarded_card = card_two;
+                            }
+                        } else if (suits[card_two[1]] >= 3) {
+                            if (card_one[1] != card_two[1]) {
+                                action = DISCARD + COLON + card_one;
+                                discarded_card = card_one;
+                            }
+                        } else if (hand_class.compare(PAIR_CLASS) == 0) {
+                            if (card_one_value == card_two_value) {
+                                if(card_one_value < 7) {
+                                    if (suits[card_one[1]] == std::max(suits[card_one[1]], suits[card_two[1]])) {
+                                        action = DISCARD + COLON + card_two;
+                                        discarded_card = card_two;
+                                    } else {
+                                        action = DISCARD + COLON + card_one;
+                                        discarded_card = card_one;
+                                    }
+                                }
+                            } else {
+                                for (int i = 0; i < num_board_cards; ++i) {
+                                    if (card_one.compare(board_cards[i]) == 0) {
+                                        action = DISCARD + COLON + card_two;
+                                        discarded_card = card_two;
+                                        break;
+                                    } else if (card_two.compare(board_cards[i]) == 0) {
+                                        action = DISCARD + COLON + card_one;
+                                        discarded_card = card_one;
+                                        break;
+                                    }
+                                }
+                                if (action.compare("") == 0) {
+                                    if (card_one_value < card_two_value) {
+                                        action = DISCARD + COLON + card_one;
+                                        discarded_card = card_one;
+                                    } else {
+                                        action = DISCARD + COLON + card_two;
+                                        discarded_card = card_two;
+                                    }
                                 }
                             }
-                            loop_one = true;
+                        } else if (hand_class.compare(TWO_CLASS) == 0) {
+                            bool card_one_pair = false;
+                            bool card_two_pair = false;
+                            for (int i = 0; i < num_board_cards; ++i) {
+                                if (card_one.compare(board_cards[i]) == 0) {
+                                    card_one_pair = true;
+                                } else if (card_two.compare(board_cards[i]) == 0) {
+                                    card_two_pair = true;
+                                }
+                            }
+                            if (card_one_pair && !card_two_pair) {
+                                action = DISCARD + COLON + card_two;
+                                discarded_card = card_two;
+                            } else if (!card_one_pair && card_two_pair) {
+                                action = DISCARD + COLON + card_one;
+                                discarded_card = card_one;
+                            } else if (!card_one_pair && !card_two_pair) {
+                                if (card_one_value < card_two_value) {
+                                    action = DISCARD + COLON + card_one;
+                                    discarded_card = card_one;
+                                } else {
+                                    action = DISCARD + COLON + card_two;
+                                    discarded_card = card_two;
+                                }
+                            }
+                        } else {
+                            if (card_one_value < card_two_value) {
+                                action = DISCARD + COLON + card_one;
+                                discarded_card = card_one;
+                            } else {
+                                action = DISCARD + COLON + card_two;
+                                discarded_card = card_two;
+                            }
                         }
-                        int adjust = discarded_card.compare("") == 0 ? 1 : 0;
-                        rank_no_discard *= (45 - adjust);
-                    }
-                    int choice = std::max(rank_no_discard, rank_discard_one);
-                    choice = std::max(choice, rank_discard_two);
-                    if (choice == rank_discard_one) {
-                        action = DISCARD + COLON + card_one;
-                        discarded_card = card_one;
-                    } else if (choice == rank_discard_two) {
-                        action = DISCARD + COLON + card_two;
-                        discarded_card = card_two;
                     }
                 } else {
                     if (hand_class.compare(THREE_CLASS) == 0) {
@@ -658,10 +821,22 @@ void Player::run(tcp::iostream &stream) {
                 }
             }
             if (action.compare("") == 0) {
-                if (can_check) {
-                    action = CHECK;
-                } else {
-                    action = FOLD;
+                if ((hand_class.compare(PAIR_CLASS) == 0 && contribution < limit_pair - 4) || (hand_class.compare(TWO_CLASS) == 0 && contribution < limit_two - 4) || state.compare(POSTRIVER) == 0) {
+                    if (can_bet) {
+                        int max_bet = std::stoi(limits[1]);
+                        if (max_bet < 2 * big_blind) {
+                            action = BET + COLON + limits[1];
+                        } else {
+                            action = BET + COLON + std::to_string(4);
+                        }
+                    }
+                }
+                if (action.compare("") == 0) {
+                    if (can_check) {
+                        action = CHECK;
+                    } else {
+                        action = FOLD;
+                    }
                 }
             }
             // clean up
@@ -675,7 +850,8 @@ void Player::run(tcp::iostream &stream) {
             stream << action << "\n";
         } else if (NEWHAND.compare(first_word) == 0) {
             // extract information
-            hand_id = atoi(packet[1].c_str());
+            suits['s'] = suits['d'] = suits['h'] = suits['c'];
+            hand_id = std::stoi(packet[1]);
             button = TRUE_STRING.compare(packet[2]) == 0;
             card_one = packet[3];
             card_two = packet[4];
@@ -689,8 +865,8 @@ void Player::run(tcp::iostream &stream) {
             if (it == pocket_strengths.end()) pocket = std::string(1, pocket[1]) + std::string(1, pocket[0]) + std::string(1, pocket[2]);
             pocket_strength = pocket_strengths[pocket];
             state = PREFLOP;
-            time_bank = packet.back();
-            for (int i = 0; i < 5; i++) {
+            time_bank = std::stod(packet.back());
+            for (int i = 0; i < 5; ++i) {
                 board_cards[i] = "";
             }
             street[0] = 0;
@@ -699,14 +875,15 @@ void Player::run(tcp::iostream &stream) {
             discarded_card = "";
         } else if (HANDOVER.compare(first_word) == 0) {
             // extract information
-            time_bank = packet.back();
+            time_bank = std::stod(packet.back());
         } else if (NEWGAME.compare(first_word) == 0) {
             // extract information
             name = packet[1];
             opponent_name = packet[2];
-            stack_size = atoi(packet[3].c_str());
-            big_blind = atoi(packet[4].c_str());
-            time_bank = packet.back();
+            stack_size = std::stoi(packet[3]);
+            big_blind = std::stoi(packet[4]);
+            num_hands = std::stoi(packet[5]);
+            time_bank = std::stod(packet.back());
         } else if (REQUESTKEYVALUES.compare(first_word) == 0) {
             stream << FINISH << "\n";
         }
